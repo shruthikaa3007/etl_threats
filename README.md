@@ -64,19 +64,18 @@ The pipeline generates:
 
 ## Technical Features
 
--**Modular Design:** Separate modules for each ETL phase
-- **MongoDB Indexing:** Efficient querying with indexed IP addresses
-- **Data Validation:** IP address format validation
- -**Automatic Deduplication:** Removes duplicate IPs while preserving highest threat scores
- -**Comprehensive Logging:** Detailed logs for debugging and monitoring
+- **Modular Design:** Separate modules for each ETL phase
+-  **MongoDB Indexing:** Efficient querying with indexed IP addresses
+-  **Data Validation:** IP address format validation
+-  **Automatic Deduplication:** Removes duplicate IPs while preserving highest threat scores
+ - **Comprehensive Logging:** Detailed logs for debugging and monitoring
 
 
 
-## Troubleshooting
 
 **Common Issues:**
- **API Key Error:** Verify keys in .env file
- **MongoDB Connection:** Check if MongoDB is running
- **Rate Limiting:** Pipeline includes automatic delays for API limits
- **Missing Data:** Some APIs  return empty results 
+-  **API Key Error:** Verify keys in .env file
+-  **MongoDB Connection:** Check if MongoDB is running
+-  **Rate Limiting:** Pipeline includes automatic delays for API limits
+ - **Missing Data:** Some APIs  return empty results 
 
