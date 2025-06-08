@@ -64,11 +64,11 @@ The pipeline generates:
 
 ## Technical Features
 
-**Modular Design:** Separate modules for each ETL phase
- **MongoDB Indexing:** Efficient querying with indexed IP addresses
- **Data Validation:** IP address format validation
- **Automatic Deduplication:** Removes duplicate IPs while preserving highest threat scores
- **Comprehensive Logging:** Detailed logs for debugging and monitoring
+-**Modular Design:** Separate modules for each ETL phase
+- **MongoDB Indexing:** Efficient querying with indexed IP addresses
+- **Data Validation:** IP address format validation
+ -**Automatic Deduplication:** Removes duplicate IPs while preserving highest threat scores
+ -**Comprehensive Logging:** Detailed logs for debugging and monitoring
 
 
 
