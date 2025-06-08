@@ -1,23 +1,23 @@
 import requests
-import time
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 from dotenv import load_dotenv
+import time
 
-# Load environment variables
-load_dotenv('config/.env')
+load_dotenv(os.path.join(os.path.dirname(__file__), '../config/.env'))
 
-# Setup logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ThreatDataExtractor:
     def __init__(self):
         self.abuseipdb_key = os.getenv('ABUSEIPDB_API_KEY')
-        self.virustotal_key = os.getenv('VIRUSTOTAL_API_KEY')
-        
-    def extract_abuseipdb_data(self, days=7, limit=50):
+        self.otx_key = os.getenv('OTX_API_KEY')
+        self.otx_base_url = 'https://otx.alienvault.com/api/v1'
+
+    def extract_abuseipdb_data(self, limit=50):
         """Extract data from AbuseIPDB API"""
         url = 'https://api.abuseipdb.com/api/v2/blacklist'
         headers = {
@@ -28,65 +28,70 @@ class ThreatDataExtractor:
             'confidenceMinimum': 75,
             'limit': limit
         }
-        
+
         try:
             response = requests.get(url, headers=headers, params=params)
             response.raise_for_status()
-            data = response.json()
-            
-            # Add source and timestamp
-            for item in data.get('data', []):
-                item['source'] = 'abuseipdb'
-                item['extracted_at'] = datetime.now().isoformat()
-                
-            logger.info(f"Extracted {len(data.get('data', []))} records from AbuseIPDB")
-            return data.get('data', [])
-            
+            raw_data = response.json().get('data', [])
+
+            normalized = []
+            for item in raw_data:
+                normalized.append({
+                    'ip_address': item.get('ipAddress'),
+                    'country_code': item.get('countryCode', 'Unknown'),
+                    'threat_score': item.get('abuseConfidenceScore', 0),
+                    'source': 'abuseipdb',
+                    'extracted_at': datetime.now().isoformat()
+                })
+
+            logger.info(f"Extracted {len(normalized)} records from AbuseIPDB")
+            return normalized
+
         except Exception as e:
             logger.error(f"Error extracting from AbuseIPDB: {e}")
             return []
-    
-    def extract_virustotal_data(self, limit=50):
-        """Extract data from VirusTotal API (using IP search)"""
-        # For demo purposes, we'll use a list of known malicious IPs
-        # In real implementation, you'd use VirusTotal's feed API
-        sample_ips = [
-            '185.220.101.182', '198.96.155.3', '23.129.64.131',
-            '185.220.102.8', '192.42.116.16', '199.87.154.255'
-        ]
-        
-        url = 'https://www.virustotal.com/vtapi/v2/ip-address/report'
+
+    def extract_otx_data(self, limit=20):
+      
+        headers = {
+            'X-OTX-API-KEY': self.otx_key
+        }
+        url = f"{self.otx_base_url}/pulses/subscribed"
         results = []
-        
-        for ip in sample_ips[:limit]:
-            params = {
-                'apikey': self.virustotal_key,
-                'ip': ip
-            }
-            
-            try:
-                response = requests.get(url, params=params)
-                response.raise_for_status()
-                data = response.json()
-                
-                if data.get('response_code') == 1:
-                    processed_data = {
-                        'ip': ip,
-                        'detected_urls': len(data.get('detected_urls', [])),
-                        'detected_samples': len(data.get('detected_samples', [])),
-                        'source': 'virustotal',
-                        'extracted_at': datetime.now().isoformat(),
-                        'country': data.get('country', 'Unknown'),
-                        'as_owner': data.get('as_owner', 'Unknown')
-                    }
-                    results.append(processed_data)
-                    
-                # Rate limiting
-                time.sleep(15)  # VirusTotal free API limit
-                
-            except Exception as e:
-                logger.error(f"Error extracting {ip} from VirusTotal: {e}")
-                continue
-        
-        logger.info(f"Extracted {len(results)} records from VirusTotal")
-        return results
+
+        try:
+            response = requests.get(url, headers=headers, params={'limit': limit})
+            response.raise_for_status()
+            data = response.json()
+
+            for pulse in data.get('results', []):
+                for indicator in pulse.get('indicators', []):
+                    if indicator.get('type') == 'IPv4':
+                        results.append({
+                            'ip_address': indicator.get('indicator'),
+                            'threat_type': pulse.get('name', 'Unknown'),
+                            'confidence': indicator.get('role', 'medium'),
+                            'source': 'otx',
+                            'pulse_id': pulse.get('id'),
+                            'extracted_at': datetime.now().isoformat()
+                        })
+
+            logger.info(f"Extracted {len(results)} records from OTX")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error extracting from OTX: {e}")
+            return []
+
+    def extract_all(self, limit=100):
+      
+        all_data = []
+
+        abuse_data = self.extract_abuseipdb_data(limit=limit // 2)
+        otx_data = self.extract_otx_data(limit=limit // 2)
+
+        all_data.extend(abuse_data)
+        all_data.extend(otx_data)
+
+        logger.info(f"Total threats extracted: {len(all_data)}")
+        return all_data
