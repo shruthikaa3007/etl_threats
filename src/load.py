@@ -16,13 +16,13 @@ class ThreatDataLoader:
         self.collection = None
         
     def connect(self):
-        """Connect to MongoDB"""
+       
         try:
             self.client = MongoClient(self.mongodb_uri)
             self.db = self.client[self.db_name]
             self.collection = self.db[self.collection_name]
             
-            # Create index on ip_address for efficient querying
+         
             self.collection.create_index("ip_address", unique=True)
             self.collection.create_index("extracted_at")
             
@@ -34,12 +34,11 @@ class ThreatDataLoader:
             return False
     
     def load_data(self, data):
-        """Load data into MongoDB"""
         if not self.connect():
             return False
         
         try:
-            # Use upsert to handle duplicates
+            
             for record in data:
                 self.collection.replace_one(
                     {"ip_address": record["ip_address"]},
@@ -59,7 +58,7 @@ class ThreatDataLoader:
                 self.client.close()
     
     def get_threat_data(self, limit=None):
-        """Retrieve threat data from MongoDB"""
+    
         if not self.connect():
             return []
         
